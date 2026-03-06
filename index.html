@@ -1,47 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mines Casino Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background-color: #1a1d29; color: white; font-family: sans-serif; text-align: center; }
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(5, 1fr); 
-            gap: 10px; 
-            max-width: 350px; 
-            margin: 20px auto; 
-        }
-        .cell { 
-            aspect-ratio: 1; 
-            background-color: #2c313f; 
-            border-radius: 8px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 24px; 
-            cursor: pointer;
-        }
-        .cell.gem { background-color: #00d395; } /* Color gema */
-        .cell.mine { background-color: #ff4b4b; } /* Color bomba */
+        body { background: #0f121d; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .stats-panel { background: #1a1d29; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-around; }
+        .multiplier { color: #00d395; font-weight: bold; font-size: 1.2em; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 320px; margin: 0 auto; }
+        .cell { width: 100%; aspect-ratio: 1; background: #2c313f; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; border: 1px solid #3d4459; }
+        .cell.gem { background: #00d395; border-color: #00ffaa; box-shadow: 0 0 10px #00d395; }
+        .cell.mine { background: #ff4b4b; border-color: #ff0000; }
+        .btn-cashout { background: #00d395; color: #0f121d; border: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 1.1em; margin-top: 20px; width: 100%; cursor: pointer; display: none; }
+        .btn-reset { background: #3d4459; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>MINES</h1>
-    <div class="grid" id="grid"></div>
+    <div class="stats-panel">
+        <div>Multiplicador: <span id="mult" class="multiplier">1.00x</span></div>
+        <div>Ganancia: <span id="profit" style="color: gold;">0.00</span></div>
+    </div>
+
+    <div class="grid" id="board"></div>
+    
+    <button id="cashoutBtn" class="btn-cashout" onclick="cashout()">RETIRAR GANANCIA</button>
+    <button class="btn-reset" onclick="resetGame()">Nuevo Juego</button>
 
     <script>
-        const grid = document.getElementById('grid');
-        // Crear 25 casillas
-        for (let i = 0; i < 25; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.onclick = () => {
-                // Lógica visual: al hacer clic, mostrar gema o bomba
-                cell.innerHTML = Math.random() > 0.2 ? '💎' : '💣';
-                cell.classList.add(cell.innerHTML === '💎' ? 'gem' : 'mine');
-            };
-            grid.appendChild(cell);
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let multiplier = 1.00;
+        let gemsFound = 0;
+        let gameOver = false;
+        const totalMines = 3; // Puedes cambiar esto
+        const mines = Array(25).fill(false);
+        
+        function initMines() {
+            let count = 0;
+            while(count < totalMines) {
+                let r = Math.floor(Math.random() * 25);
+                if(!mines[r]) { mines[r] = true; count++; }
+            }
         }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.onclick = () => reveal(cell, i);
+                board.appendChild(cell);
+            }
+        }
+
+        function reveal(cell, index) {
+            if(gameOver || cell.classList.contains('gem')) return;
+
+            if(mines[index]) {
+                gameOver = true;
+                cell.innerHTML = '💣';
+                cell.classList.add('mine');
+                tg.HapticFeedback.notificationOccurred('error');
+                document.getElementById('cashoutBtn').style.display = 'none';
+                alert("¡BOOM! Perdiste todo.");
+            } else {
+                gemsFound++;
+                multiplier += 0.45; // Simulación de aumento de ganancia
+                cell.innerHTML = '💎';
+                cell.classList.add('gem');
+                tg.HapticFeedback.impactOccurred('medium');
+                document.getElementById('mult').innerText = multiplier.toFixed(2) + 'x';
+                document.getElementById('profit').innerText = (multiplier * 10).toFixed(2);
+                document.getElementById('cashoutBtn').style.display = 'block';
+            }
+        }
+
+        function cashout() {
+            if(gameOver) return;
+            tg.HapticFeedback.notificationOccurred('success');
+            alert("¡Felicidades! Te retiras con " + document.getElementById('profit').innerText);
+            gameOver = true;
+            document.getElementById('cashoutBtn').style.display = 'none';
+        }
+
+        function resetGame() {
+            gameOver = false;
+            multiplier = 1.00;
+            gemsFound = 0;
+            mines.fill(false);
+            initMines();
+            createBoard();
+            document.getElementById('mult').innerText = '1.00x';
+            document.getElementById('profit').innerText = '0.00';
+            document.getElementById('cashoutBtn').style.display = 'none';
+        }
+
+        initMines();
+        createBoard();
     </script>
 </body>
 </html>

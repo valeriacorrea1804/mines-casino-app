@@ -3,104 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mines Casino Pro</title>
+    <title>Mines Casino Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #0f121d; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .stats-panel { background: #1a1d29; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-around; }
-        .multiplier { color: #00d395; font-weight: bold; font-size: 1.2em; }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 320px; margin: 0 auto; }
-        .cell { width: 100%; aspect-ratio: 1; background: #2c313f; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; border: 1px solid #3d4459; }
-        .cell.gem { background: #00d395; border-color: #00ffaa; box-shadow: 0 0 10px #00d395; }
-        .cell.mine { background: #ff4b4b; border-color: #ff0000; }
-        .btn-cashout { background: #00d395; color: #0f121d; border: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 1.1em; margin-top: 20px; width: 100%; cursor: pointer; display: none; }
-        .btn-reset { background: #3d4459; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; cursor: pointer; }
+        /* FONDO Y ESTILOS GENERALES (Basado en imagen_0.png) */
+        body {
+            background: radial-gradient(circle, #1e2333 0%, #0f121d 100%);
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* Evita scrolls raros en móvil */
+        }
+
+        /* TÍTULO SUPERIOR */
+        .header-title {
+            font-size: 32px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-top: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* CONTENEDOR PRINCIPAL DEL JUEGO */
+        .game-container {
+            flex: 1; /* Ocupa el espacio disponible */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 400px; /* Ancho máximo para que no se deforme en PC */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* LA CUADRÍCULA DE JUEGO (5x5) */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px; /* Espacio entre casillas como en imagen_0.png */
+            width: 100%;
+            background-color: rgba(15, 18, 29, 0.5); /* Fondo semitransparente */
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        /* ESTILO DE CADA CASILLA (ESTADO TAPADO) */
+        .cell {
+            width: 100%;
+            aspect-ratio: 1; /* Mantiene la casilla cuadrada */
+            background-color: #2c313f; /* Color oscuro de la casilla en imagen_0.png */
+            /* Alternativa si subiste la imagen: background-image: url('casilla.png'); background-size: cover; */
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            border: 1px solid #3d4459; /* Borde sutil */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Efecto al pulsar/hover */
+        .cell:active {
+            transform: scale(0.95);
+            background-color: #3d4459;
+        }
+
+        /* ESTILO CUANDO APARECE UNA GEMA */
+        .cell.gem {
+            background-color: #00d395; /* Color verde de fondo */
+            border-color: #00ffaa;
+            box-shadow: 0 0 15px rgba(0, 211, 149, 0.7);
+        }
+        /* Aquí cargamos la imagen de la gema que subiste a GitHub */
+        .cell.gem::after {
+            content: '';
+            width: 80%;
+            height: 80%;
+            background-image: url('gema.png'); /* <--- CAMBIA ESTO POR TU NOMBRE DE ARCHIVO */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* ESTILO CUANDO APARECE UNA BOMBA */
+        .cell.mine {
+            background-color: #ff4b4b; /* Color rojo de fondo */
+            border-color: #ff0000;
+        }
+        /* Aquí cargamos la imagen de la bomba que subiste a GitHub */
+        .cell.mine::after {
+            content: '';
+            width: 80%;
+            height: 80%;
+            background-image: url('bomba.png'); /* <--- CAMBIA ESTO POR TU NOMBRE DE ARCHIVO */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+
+        /* BARRA DE CONTROL INFERIOR (RECREANDO imagen_0.png) */
+        .control-bar {
+            width: 100%;
+            background-color: #1a1d29; /* Fondo oscuro de la barra */
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            border-top: 2px solid #3d4459;
+            position: absolute;
+            bottom: 0;
+            height: 70px;
+        }
+
+        /* SECCIÓN DE SALDO (IZQUIERDA) */
+        .balance-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .balance-icon {
+            width: 25px; height: 25px;
+            background-color: #3d4459; /* Icono genérico de billetera */
+            border-radius: 5px;
+        }
+        .balance-label { font-size: 12px; color: #8b949e; text-transform: uppercase; }
+        .balance-value { font-size: 18px; font-weight: bold; color: #ffffff; }
+
+        /* SECCIÓN DE APUESTA (DERECHA) */
+        .bet-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bet-input-container {
+            background-color: #0f121d;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #3d4459;
+            display: flex;
+            align-items: center;
+            color: #8b949e;
+        }
+        .bet-input {
+            background: none; border: none; color: white;
+            font-size: 16px; font-weight: bold; width: 60px; text-align: center;
+            outline: none;
+        }
+
+        /* BOTÓN DE "BET" (Apostar) */
+        .btn-bet {
+            background-color: #ffffff; /* Botón blanco como en imagen_0.png */
+            color: #0f121d;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-bet:active { background-color: #e0e0e0; }
+
     </style>
 </head>
 <body>
-    <div class="stats-panel">
-        <div>Multiplicador: <span id="mult" class="multiplier">1.00x</span></div>
-        <div>Ganancia: <span id="profit" style="color: gold;">0.00</span></div>
+
+    <div class="header-title">MINES</div>
+
+    <div class="game-container">
+        <div class="grid" id="gameBoard">
+            </div>
     </div>
 
-    <div class="grid" id="board"></div>
-    
-    <button id="cashoutBtn" class="btn-cashout" onclick="cashout()">RETIRAR GANANCIA</button>
-    <button class="btn-reset" onclick="resetGame()">Nuevo Juego</button>
+    <div class="control-bar">
+        <div class="balance-section">
+            <div class="balance-icon"></div>
+            <div>
+                <div class="balance-label">Balance</div>
+                <div class="balance-value">£568.23</div> </div>
+        </div>
+        <div class="bet-section">
+            <div class="bet-input-container">
+                <span>£</span>
+                <input type="text" class="bet-input" value="1.00" readonly>
+            </div>
+            <button class="btn-bet">BET</button>
+        </div>
+    </div>
 
     <script>
+        // LÓGICA BÁSICA DEL JUEGO (Mantenemos la que ya tenías pero adaptada)
         const tg = window.Telegram.WebApp;
-        tg.expand();
+        tg.expand(); // Abre a pantalla completa
 
-        let multiplier = 1.00;
-        let gemsFound = 0;
-        let gameOver = false;
-        const totalMines = 3; // Puedes cambiar esto
+        const board = document.getElementById('gameBoard');
         const mines = Array(25).fill(false);
-        
+        let gameOver = false;
+
+        // Colocar 3 minas al azar (igual que antes)
         function initMines() {
             let count = 0;
-            while(count < totalMines) {
+            while(count < 3) {
                 let r = Math.floor(Math.random() * 25);
                 if(!mines[r]) { mines[r] = true; count++; }
             }
         }
 
+        // Generar las casillas visualmente
         function createBoard() {
-            const board = document.getElementById('board');
-            board.innerHTML = '';
             for (let i = 0; i < 25; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.onclick = () => reveal(cell, i);
+                cell.onclick = () => revealCell(cell, i);
                 board.appendChild(cell);
             }
         }
 
-        function reveal(cell, index) {
+        // Lógica al hacer click
+        function revealCell(cell, index) {
             if(gameOver || cell.classList.contains('gem')) return;
 
             if(mines[index]) {
+                // ¡BOMBA!
                 gameOver = true;
-                cell.innerHTML = '💣';
                 cell.classList.add('mine');
-                tg.HapticFeedback.notificationOccurred('error');
-                document.getElementById('cashoutBtn').style.display = 'none';
-                alert("¡BOOM! Perdiste todo.");
+                tg.HapticFeedback.notificationOccurred('error'); // Vibración de error
+                setTimeout(() => alert("¡BOOM! Fin de la partida."), 200);
             } else {
-                gemsFound++;
-                multiplier += 0.45; // Simulación de aumento de ganancia
-                cell.innerHTML = '💎';
+                // ¡GEMA!
                 cell.classList.add('gem');
-                tg.HapticFeedback.impactOccurred('medium');
-                document.getElementById('mult').innerText = multiplier.toFixed(2) + 'x';
-                document.getElementById('profit').innerText = (multiplier * 10).toFixed(2);
-                document.getElementById('cashoutBtn').style.display = 'block';
+                tg.HapticFeedback.impactOccurred('medium'); // Vibración suave
             }
         }
 
-        function cashout() {
-            if(gameOver) return;
-            tg.HapticFeedback.notificationOccurred('success');
-            alert("¡Felicidades! Te retiras con " + document.getElementById('profit').innerText);
-            gameOver = true;
-            document.getElementById('cashoutBtn').style.display = 'none';
-        }
-
-        function resetGame() {
-            gameOver = false;
-            multiplier = 1.00;
-            gemsFound = 0;
-            mines.fill(false);
-            initMines();
-            createBoard();
-            document.getElementById('mult').innerText = '1.00x';
-            document.getElementById('profit').innerText = '0.00';
-            document.getElementById('cashoutBtn').style.display = 'none';
-        }
-
+        // Iniciar
         initMines();
         createBoard();
+
     </script>
 </body>
 </html>
